@@ -9,10 +9,19 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import confusion_matrix
 
+# def calculate_histogram(image, bins=(8, 8, 8)):
+#     # Compute the histogram
+#     hist = cv2.calcHist([image], [0, 1, 2], None, bins, [0, 256, 0, 256, 0, 256])
+#     # Normalize the histogram
+#     hist = cv2.normalize(hist, hist).flatten()
+#     return hist
 
 def calculate_histogram(image, bins=(8, 8, 8)):
+    # Define a mask to exclude white pixels
+    mask = cv2.inRange(image, np.array([240, 240, 240]), np.array([255, 255, 255]))
+    mask = cv2.bitwise_not(mask)  # invert the mask so white pixels are excluded
     # Compute the histogram
-    hist = cv2.calcHist([image], [0, 1, 2], None, bins, [0, 256, 0, 256, 0, 256])
+    hist = cv2.calcHist([image], [0, 1, 2], mask, bins, [0, 256, 0, 256, 0, 256])
     # Normalize the histogram
     hist = cv2.normalize(hist, hist).flatten()
     return hist
@@ -22,7 +31,7 @@ data = []
 labels = []
 
 for category in categories:
-    for file in glob.glob(f"archive/train/train/{category}_*.jpg"):
+    for file in glob.glob(f"color/archive/train/train/{category}_*.jpg"):
         image = cv2.imread(file)
         histogram = calculate_histogram(image)
         data.append(histogram)
@@ -41,13 +50,13 @@ classifier = KNeighborsClassifier(n_neighbors=3)
 classifier.fit(X_train, y_train)
 
 # Test the classifier
-# score = classifier.score(X_test, y_test)
-# print(f"Classification accuracy: {score}")
+score = classifier.score(X_test, y_test)
+print(f"Classification accuracy: {score}")
 
 # Predictions
-# predictions = classifier.predict(X_test)
-# confusion = confusion_matrix(y_test, predictions)
-# print(confusion)
+predictions = classifier.predict(X_test)
+confusion = confusion_matrix(y_test, predictions)
+print(confusion)
 
 
 
