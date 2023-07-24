@@ -9,7 +9,7 @@ count = 0
 for penguinIMG in penguins:
     filename, extension = os.path.splitext(penguinIMG)
     sourcePath = os.path.join(
-        "FeatureClass/TurtleVPenguins/archive/valid/valid/T", penguinIMG
+        "FeatureClass/TurtleVPenguins/archive/valid/valid/P", penguinIMG
     )
     destPath = os.path.join(main, f"P{count}{extension}")
 
