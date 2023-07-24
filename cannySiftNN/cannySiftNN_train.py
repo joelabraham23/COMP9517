@@ -96,8 +96,7 @@ print(len(labels[i - 1]["descriptor"]))
 
 ## NN
 
-train_data = [data["descriptor"] for data in labels]
-
+train_data = [data["descriptor"] / 255 for data in labels]
 target = [[data["category_id"] - 1] for data in labels]
 train_data = torch.tensor(train_data, dtype=torch.float32)
 target = torch.tensor(target, dtype=torch.float32)
@@ -108,7 +107,7 @@ train_loader = torch.utils.data.DataLoader(
 )
 
 
-net = DenseNet(len(labels[0]["descriptor"]), len(labels[i - 1]["descriptor"] * 2), 1)
+net = DenseNet(len(labels[0]["descriptor"]), 50, 1)
 
 if list(net.parameters()):
     # initialize weight values
@@ -117,7 +116,7 @@ if list(net.parameters()):
         m.data.normal_(0, 0.08)
 
     # use Adam optimizer
-    optimizer = torch.optim.Adam(net.parameters(), lr=0.05, weight_decay=0.0001)
+    optimizer = torch.optim.Adam(net.parameters(), lr=0.005, weight_decay=0.0001)
 
     # training loop
     epoch = 0
