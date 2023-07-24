@@ -111,9 +111,9 @@ net = DenseNet(len(labels[0]["descriptor"]), 50, 1)
 
 if list(net.parameters()):
     # initialize weight values
-    for m in list(net.parameters()):
+    for we in list(net.parameters()):
         # starting weights
-        m.data.normal_(0, 0.08)
+        we.data.normal_(0, 0.08)
 
     # use Adam optimizer
     optimizer = torch.optim.Adam(net.parameters(), lr=0.005, weight_decay=0.0001)
@@ -121,7 +121,7 @@ if list(net.parameters()):
     # training loop
     epoch = 0
     count = 0
-    max_epoch = 200000
+    max_epoch = 20000
     while epoch < max_epoch and count < 2000:
         epoch = epoch + 1
         accuracy = train(net, train_loader, optimizer)
@@ -129,3 +129,4 @@ if list(net.parameters()):
             count = count + 1
         else:
             count = 0
+torch.save(net, "./cannySiftNN/briefnn.pt")
