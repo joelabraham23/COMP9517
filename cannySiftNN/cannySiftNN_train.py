@@ -122,8 +122,8 @@ if list(net.parameters()):
     # training loop
     epoch = 0
     count = 0
-    max_epoch = 20000
-    while epoch < 20000 and count < 2000:
+    max_epoch = 200000
+    while epoch < max_epoch and count < 2000:
         epoch = epoch + 1
         accuracy = train(net, train_loader, optimizer)
         if accuracy == 100:
