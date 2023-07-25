@@ -183,4 +183,5 @@ knnSIFT = knn.fit(trainingHist, trainlabels)
 
 ################################### training
 SiftKNN = knn.predict(testHist)
-print(f"Accuracy score for SIFT: {accuracy_score(trainlabels, SiftKNN)}")
+print(f"Accuracy score for SIFT: {accuracy_score(testlabels, SiftKNN)}")
+print(f"confusionn matric for SIFT: \n{confusion_matrix(testlabels, SiftKNN)}")
