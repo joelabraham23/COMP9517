@@ -80,9 +80,11 @@ def genFeatures(dataset, labels, fExtractor):
     i = 0
     for image in dataset:
         if fExtractor == "SIFT":
-            ext = cv.SIFT_create()
+            ext = cv.SIFT_create(10)
+            print("starting SIFT")
         elif fExtractor == "ORB":
-            ext = cv.ORB_create()
+            ext = cv.ORB_create(10)
+            print("starting OB")
 
         kp = ext.detect(image, None)
         kpList = list(kp)
@@ -96,8 +98,8 @@ def genFeatures(dataset, labels, fExtractor):
         # plot(image, image, kp)
 
         i += 1
-        if len(desc) < 150:
-            while len(desc) < 150:
+        if len(desc) < 5:
+            while len(desc) < 5:
                 desc = np.concatenate((desc, np.expand_dims(desc[0], axis=0)), axis=0)
         descriptors.append(desc)
     return np.vstack(descriptors), labels
@@ -128,6 +130,7 @@ def genHistograms(descriptors, kRetval, size):
 def trainClassifier(dataset, labels):
     classifiers = []
     # KNN
+    print("starting KNN")
     classifier = KNeighborsClassifier(len(np.unique(labels)))
     ## SIFT
     descriptors, trainlabels = genFeatures(dataset, labels, "SIFT")
@@ -138,6 +141,7 @@ def trainClassifier(dataset, labels):
     classifiers.append(classifier.fit(hist, labels))
 
     # ORB
+    print("starting ORB")
     descriptors, trainlabels = genFeatures(dataset, labels, "ORB")
     kRet = genKMeans(descriptors)
     hist = genHistograms(descriptors, kRet, len(trainlabels))
@@ -146,7 +150,8 @@ def trainClassifier(dataset, labels):
     classifiers.append(classifier.fit(hist, labels))
 
     # =========================== DT
-    classifier = DecisionTreeClassifier(len(np.unique(labels)))
+    classifier = DecisionTreeClassifier()
+    print("starting DT")
     ## SIFT
     descriptors, trainlabels = genFeatures(dataset, labels, "SIFT")
     kRet = genKMeans(descriptors)
@@ -164,9 +169,8 @@ def trainClassifier(dataset, labels):
     classifiers.append(classifier.fit(hist, labels))
 
     # ============================ SGD
-    classifier = SGDClassifier(
-        loss="hinge", alpha=0.001, max_iter=1000, random_state=42
-    )
+    classifier = SGDClassifier()
+    print("starting SGD")
     ## SIFT
     descriptors, trainlabels = genFeatures(dataset, labels, "SIFT")
     kRet = genKMeans(descriptors)
@@ -242,7 +246,7 @@ def getResults(TrainPath, TestPath):
 trainDataSet, trainlabels, trH, trW = genDataset(TRAINPATH)
 trainDataSet = resize(trainDataSet, trH, trW)
 
-testDataSet, testlabels, teH, teW = genDataset(TRAINPATH)
+testDataSet, testlabels, teH, teW = genDataset(TESTPATH)
 testDataSet = resize(testDataSet, teH, teW)
 results = getResults(TRAINPATH, TESTPATH)
 
@@ -258,4 +262,3 @@ cm = confusion_matrix(testlabels, results[1])
 probabilities = bayesianProbability(cm)
 print(f"Probability of orbKNN TURTLE: {probabilities[0]:.2f}")
 print(f"Probability of orbKNN PENGUIN: {probabilities[1]:.2f}")
-
