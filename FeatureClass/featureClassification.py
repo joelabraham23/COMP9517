@@ -42,14 +42,15 @@ def genDataset(path):
     Dir = os.listdir(path)
     for file in Dir:
         if "P" in file.split(".")[0]:
-            image = cv.imread(path + file)
+            image = cv.cvtColor(cv.imread(path + file), cv.COLOR_BGR2GRAY)
             labels.append(Animal.PENGUIN.value)
         else:
             # image = Image(cv.imread(path + file), Animal.TURTLE.value, -1, -1)
             image = cv.imread(path + file)
-            labels.append(Animal.PENGUIN.value)
+            labels.append(Animal.TURTLE.value)
         imgs.append(image)
-        h, w, _ = image.shape
+        h = image.shape[0]
+        w = image.shape[1]
         if h < minH:
             minH = h
         if w < minW:
@@ -58,22 +59,91 @@ def genDataset(path):
     return imgs, labels, minH, minW
 
 
-def genFeatures(dataset, labels, classifier):
+def SIFT(image):
+    return
+
+
+def ORB(image):
+    return
+
+
+def genFeatures(dataset, labels, fExtractor):
     descriptors = []
-    if classifier == "SIFT":
-        classi = cv.SIFT_create(15)
-    elif classifier == "ORB":
-        classi = cv.ORB_create(15)
     i = 0
     for image in dataset:
-        kp, desc = classi.detectAndCompute(cv.cvtColor(image, cv.COLOR_BGR2GRAY), None)
+        if fExtractor == "SIFT":
+            ext = cv.SIFT_create(20)
+        elif fExtractor == "ORB":
+            ext = cv.ORB_create(20)
+
+        kp = ext.detect(image, None)
+        kpList = list(kp)
+        kpList.sort(key=lambda x: x.response, reverse=True)
+        kp, desc = ext.compute(image, tuple(kpList))
+        # Make sure its not that one image thats annoying
         if desc is None or kp == 0:
             labels.pop(i)
             i += 1
             continue
-        descriptors.append(desc)
+
         i += 1
-    return np.array(descriptors, dtype=object), labels
+        if len(desc) < 15:
+            while len(desc) < 15:
+                desc = np.concatenate((desc, np.expand_dims(desc[0], axis=0)), axis=0)
+        descriptors.append(desc)
+    return np.vstack(descriptors), labels
+
+
+def genKMeans(descriptors):
+    kmeans = KMeans(n_clusters=CLUSTERS, random_state=42)
+    retval = kmeans.fit_predict(descriptors)
+    # kmeans.fit(np.array([image.desc.reshape(-1) for image in dataset]))
+    return retval
+
+
+def genHistograms(descriptors, kRetval, size):
+    histograms = np.zeros((size, CLUSTERS), dtype=int)
+    idx = 0
+    for i in range(size):
+        descListSize = len(descriptors[i])
+        for j in range(descListSize):
+            if idx < len(kRetval):
+                index = kRetval[idx]
+                histograms[i][index] += 1
+                idx += 1
+            else:
+                break
+    return histograms
+
+
+def trainKNN(dataset):
+    knn = KNeighborsClassifier(
+        n_neighbors=35,
+        weights="distance",
+        algorithm="auto",
+        leaf_size=50,
+        p=2,
+        metric="minkowski",
+        metric_params=None,
+        n_jobs=None,
+    )
+    # KNN on SIFT
+    knnTrainingSet = genFeatures(dataset, "SIFT")
+    kmeans, kRetval = genKMeans(knnTrainingSet)
+    knnTrainingHistograms = genHistograms(knnTrainingSet, kRetval)
+    knnSIFT = knn.fit(
+        knnTrainingHistograms, np.array([image.animal for image in knnTrainingSet])
+    )
+
+    # KNN on ORB
+    knnTrainingSet = genFeatures(dataset, "ORB")
+    kmeans, kRetval = genKMeans(knnTrainingSet)
+    knnTrainingHistograms = genHistograms(knnTrainingSet, kRetval)
+    knnORB = knn.fit(
+        knnTrainingHistograms, np.array([image.animal for image in knnTrainingSet])
+    )
+
+    return knnSIFT, knnORB
 
 
 #################################################
@@ -81,30 +151,22 @@ def genFeatures(dataset, labels, classifier):
 trainDataSet, trainlabels, trH, trW = genDataset(TRAINPATH)
 trainDataSet = resize(trainDataSet, trH, trW)
 
+testDataSet, testlabels, teH, teW = genDataset(TESTPATH)
+testDataSet = resize(testDataSet, teH, teW)
+
 # generate FEATURES
-descriptors, trainlabels = genFeatures(trainDataSet, trainlabels, "ORB")
-# descriptors = np.vstack(descriptors)
+descriptors, trainlabels = genFeatures(trainDataSet, trainlabels, "SIFT")
+Tdescriptors, testlabels = genFeatures(testDataSet, testlabels, "SIFT")
 
+# gen kmeans
+kRet = genKMeans(descriptors)
+print("Descriptors shape:", descriptors.shape)
+print("KRetval shape:", kRet.shape)
+trainingHist = genHistograms(descriptors, kRet, len(trainlabels))
+print(len(trainingHist))
 
-def genKMeans(desc):
-    kmeans = KMeans(n_clusters=CLUSTERS, random_state=42)
-    retval = kmeans.fit_predict(desc)
-    return kmeans, retval
-
-
-def genHistograms(desc, kRetval):
-    print(len(desc))
-    print(len(kRetval))
-    histograms = np.array([np.zeros(CLUSTERS) for i in range(len(desc))])
-    count = 0
-    for i in range(len(desc)):
-        descListSize = len(desc[i])
-        for j in range(descListSize):
-            index = kRetval[descListSize + j]
-            histograms[i][index] += 1
-        count += descListSize
-    return histograms
-
+kTRet = genKMeans(Tdescriptors)
+testHist = genHistograms(Tdescriptors, kTRet, len(testlabels))
 
 knn = KNeighborsClassifier(
     n_neighbors=35,
@@ -116,5 +178,9 @@ knn = KNeighborsClassifier(
     metric_params=None,
     n_jobs=None,
 )
-kmeans, kRetval = genKMeans(descriptors)
-knnSIFT = knn.fit(genHistograms(descriptors, kRetval), trainlabels)
+
+knnSIFT = knn.fit(trainingHist, trainlabels)
+
+################################### training
+SiftKNN = knn.predict(testHist)
+print(f"Accuracy score for SIFT: {accuracy_score(trainlabels, SiftKNN)}")
