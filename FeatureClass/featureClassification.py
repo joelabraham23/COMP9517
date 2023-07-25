@@ -61,7 +61,7 @@ def genDataset(path):
 def genFeatures(dataset, labels, classifier):
     descriptors = []
     if classifier == "SIFT":
-        classi = cv.SIFT_create(40)
+        classi = cv.SIFT_create(15)
     elif classifier == "ORB":
         classi = cv.ORB_create(15)
     i = 0
@@ -82,42 +82,39 @@ trainDataSet, trainlabels, trH, trW = genDataset(TRAINPATH)
 trainDataSet = resize(trainDataSet, trH, trW)
 
 # generate FEATURES
-descriptors, trainlabels = genFeatures(trainDataSet, trainlabels, "SIFT")
-descriptors = np.vstack(descriptors)
+descriptors, trainlabels = genFeatures(trainDataSet, trainlabels, "ORB")
+# descriptors = np.vstack(descriptors)
 
-crit = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 10, 0.1)
-flags = cv.KMEANS_RANDOM_CENTERS
-compactness, labels, centres = cv.kmeans(descriptors, 150, None, crit, 10, flags)
 
-def bag_of_features(features, centres, k = 500):
-      vec = np.zeros((1, k))
-      for i in range(features.shape[0]):
-          feat = features[i]
-          diff = np.tile(feat, (k, 1)) - centres
-          dist = pow(((pow(diff, 2)).sum(axis = 1)), 0.5)
-          idx_dist = dist.argsort()
-          idx = idx_dist[0]
-          vec[0][idx] += 1
-      return vec
+def genKMeans(desc):
+    kmeans = KMeans(n_clusters=CLUSTERS, random_state=42)
+    retval = kmeans.fit_predict(desc)
+    return kmeans, retval
 
-labels = []
-vec = []
-for descriptor in descriptors:
-    img_vec = bag_of_features(descriptor, centres, 150)
-    vec.append(img_vec)
-vec = np.vstack(vec)
+
+def genHistograms(desc, kRetval):
+    print(len(desc))
+    print(len(kRetval))
+    histograms = np.array([np.zeros(CLUSTERS) for i in range(len(desc))])
+    count = 0
+    for i in range(len(desc)):
+        descListSize = len(desc[i])
+        for j in range(descListSize):
+            index = kRetval[descListSize + j]
+            histograms[i][index] += 1
+        count += descListSize
+    return histograms
+
 
 knn = KNeighborsClassifier(
-        n_neighbors=35,
-        weights="distance",
-        algorithm="auto",
-        leaf_size=50,
-        p=2,
-        metric="minkowski",
-        metric_params=None,
-        n_jobs=None,
-    )
-
-knnSIFT = knn.fit(
-        vec, np.array(labels)
-    )
+    n_neighbors=35,
+    weights="distance",
+    algorithm="auto",
+    leaf_size=50,
+    p=2,
+    metric="minkowski",
+    metric_params=None,
+    n_jobs=None,
+)
+kmeans, kRetval = genKMeans(descriptors)
+knnSIFT = knn.fit(genHistograms(descriptors, kRetval), trainlabels)
