@@ -194,4 +194,27 @@ def validateNN():
     print("accuracy = " + str(accuracy) + "%")
 
 
-validateNN()
+def main(filePath):
+    penguinCertainty = 0.57669
+    turtleCertaninty = 0.5646
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    net = torch.load("./cannySiftNN/briefnn.pt")
+    img = cv2.imread(filePath)
+
+    star = cv2.xfeatures2d.StarDetector_create(responseThreshold=15)
+    brief = cv2.xfeatures2d.BriefDescriptorExtractor_create()
+    debugFeatureExtract = False
+
+    keypoint, descriptor = extractFeatures(img, star, brief, debugFeatureExtract)
+    descriptor = descriptor.flatten()
+    valid_data = descriptor / 255
+    valid_data = torch.tensor(valid_data, dtype=torch.float32)
+    resultClass = round(net.forward(valid_data).item())
+
+    if resultClass == 0:
+        animal = "Penguin"
+        certainty = penguinCertainty
+    else:
+        animal = "Turtle"
+        certainty = turtleCertaninty
+    return animal, certainty
