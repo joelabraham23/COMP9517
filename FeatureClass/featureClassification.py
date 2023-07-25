@@ -18,13 +18,19 @@ from sklearn.utils import shuffle
 
 TRAINPATH = "FeatureClass/TurtleVPenguins/archive/train/train/"
 TESTPATH = "FeatureClass/TurtleVPenguins/archive/valid/valid/"
-CLUSTERS = 648
-STEP = 100
+CLUSTERS = 1000
+# STEP = 100
 
 
 class Animal(Enum):
     TURTLE = 0
     PENGUIN = 1
+
+
+def plot(gImg, img, kp):
+    retval = img.copy()
+    plt.imshow(cv.cvtColor(cv.drawKeypoints(gImg, kp, retval), cv.COLOR_BGR2RGB))
+    plt.show()
 
 
 def resize(imgs, h, w):
@@ -46,7 +52,7 @@ def genDataset(path):
             labels.append(Animal.PENGUIN.value)
         else:
             # image = Image(cv.imread(path + file), Animal.TURTLE.value, -1, -1)
-            image = cv.imread(path + file)
+            image = cv.imread(path + file, cv.COLOR_BGR2GRAY)
             labels.append(Animal.TURTLE.value)
         imgs.append(image)
         h = image.shape[0]
@@ -72,9 +78,9 @@ def genFeatures(dataset, labels, fExtractor):
     i = 0
     for image in dataset:
         if fExtractor == "SIFT":
-            ext = cv.SIFT_create(20)
+            ext = cv.SIFT_create()
         elif fExtractor == "ORB":
-            ext = cv.ORB_create(20)
+            ext = cv.ORB_create()
 
         kp = ext.detect(image, None)
         kpList = list(kp)
@@ -85,10 +91,11 @@ def genFeatures(dataset, labels, fExtractor):
             labels.pop(i)
             i += 1
             continue
+        # plot(image, image, kp)
 
         i += 1
-        if len(desc) < 15:
-            while len(desc) < 15:
+        if len(desc) < 100:
+            while len(desc) < 100:
                 desc = np.concatenate((desc, np.expand_dims(desc[0], axis=0)), axis=0)
         descriptors.append(desc)
     return np.vstack(descriptors), labels
@@ -118,10 +125,10 @@ def genHistograms(descriptors, kRetval, size):
 
 def trainKNN(dataset):
     knn = KNeighborsClassifier(
-        n_neighbors=35,
+        n_neighbors=10,
         weights="distance",
         algorithm="auto",
-        leaf_size=50,
+        leaf_size=10,
         p=2,
         metric="minkowski",
         metric_params=None,
@@ -145,6 +152,19 @@ def trainKNN(dataset):
 
     return knnSIFT, knnORB
 
+def bayesianProbability(confusionMatrix):
+    probabilities = np.zeros(confusionMatrix.shape[0])
+    for i in range(confusionMatrix.shape[0]):
+        pPositive = confusionMatrix[i, i] / np.sum(confusionMatrix[i])
+        pNegative = 1 - pPositive
+        pPriorPositive = np.sum(confusionMatrix[i]) / np.sum(confusionMatrix)
+        pPriorNegative = 1 - pPriorPositive
+
+        # Applying Bayesian formula: P(TURTLE|Data) = (P(Data|TURTLE) * P(TURTLE)) / P(Data)
+        probabilities[i] = (pPositive * pPriorPositive) / (
+            (pPositive * pPriorPositive) + (pNegative * pPriorNegative)
+        )
+    return probabilities
 
 #################################################
 # generate datset and resize
@@ -163,25 +183,20 @@ kRet = genKMeans(descriptors)
 print("Descriptors shape:", descriptors.shape)
 print("KRetval shape:", kRet.shape)
 trainingHist = genHistograms(descriptors, kRet, len(trainlabels))
-print(len(trainingHist))
-
+trainingHist = [(th / 127) for th in trainingHist]
 kTRet = genKMeans(Tdescriptors)
 testHist = genHistograms(Tdescriptors, kTRet, len(testlabels))
+testHist = [th / 127 for th in testHist]
+knn = KNeighborsClassifier(len(np.unique(trainlabels)))
 
-knn = KNeighborsClassifier(
-    n_neighbors=35,
-    weights="distance",
-    algorithm="auto",
-    leaf_size=50,
-    p=2,
-    metric="minkowski",
-    metric_params=None,
-    n_jobs=None,
-)
-
+print(len(trainingHist))
 knnSIFT = knn.fit(trainingHist, trainlabels)
 
 ################################### training
 SiftKNN = knn.predict(testHist)
 print(f"Accuracy score for SIFT: {accuracy_score(testlabels, SiftKNN)}")
-print(f"confusionn matric for SIFT: \n{confusion_matrix(testlabels, SiftKNN)}")
+cm = confusion_matrix(testlabels, SiftKNN)
+probabilities = bayesianProbability(cm)
+print(f"Probability of TURTLE: {probabilities[0]:.2f}")
+print(f"Probability of PENGUIN: {probabilities[1]:.2f}")
+print(SiftKNN)
