@@ -2,6 +2,7 @@ import json
 import sys
 import cv2
 import matplotlib.pyplot as plt
+import os
 
 sys.path.insert(0, '../Yolov8')
 sys.path.insert(1, '../cannySiftNN')
@@ -62,10 +63,9 @@ def main(image_path):
     position = (x1, y1-10)
     cv2.putText(image, text, position, cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2)
 
-
     plt.imshow(image)
     plt.show()
+    return final_result, image
 
 
-    
 main("./valid/image_id_000.jpg")
