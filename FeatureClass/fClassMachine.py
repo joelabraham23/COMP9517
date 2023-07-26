@@ -20,8 +20,7 @@ from sklearn.utils import shuffle
 
 TRAINPATH = "FeatureClass/TurtleVPenguins/archive/train/train/"
 TESTPATH = "FeatureClass/TurtleVPenguins/archive/valid/valid/"
-CLUSTERS = 1000
-# STEP = 100
+CLUSTERS = 1100
 
 
 class Animal(Enum):
@@ -67,24 +66,16 @@ def genDataset(path):
     return imgs, labels, minH, minW
 
 
-def SIFT(image):
-    return
-
-
-def ORB(image):
-    return
-
-
 def genFeatures(dataset, labels, fExtractor):
     descriptors = []
     i = 0
     for image in dataset:
         if fExtractor == "SIFT":
-            ext = cv.SIFT_create(10)
-            print("starting SIFT")
+            ext = cv.SIFT_create(300)
+            # print("starting SIFT")
         elif fExtractor == "ORB":
-            ext = cv.ORB_create(10)
-            print("starting OB")
+            ext = cv.ORB_create(300)
+            # print("starting OB")
 
         kp = ext.detect(image, None)
         kpList = list(kp)
@@ -98,8 +89,8 @@ def genFeatures(dataset, labels, fExtractor):
         # plot(image, image, kp)
 
         i += 1
-        if len(desc) < 5:
-            while len(desc) < 5:
+        if len(desc) < 125:
+            while len(desc) < 125:
                 desc = np.concatenate((desc, np.expand_dims(desc[0], axis=0)), axis=0)
         descriptors.append(desc)
     return np.vstack(descriptors), labels
@@ -136,16 +127,16 @@ def trainClassifier(dataset, labels):
     descriptors, trainlabels = genFeatures(dataset, labels, "SIFT")
     kRet = genKMeans(descriptors)
     hist = genHistograms(descriptors, kRet, len(trainlabels))
-    hist = [(th / 127) for th in hist]
+    hist = [(th / 255) for th in hist]
     # knnSIFTModel =
     classifiers.append(classifier.fit(hist, labels))
 
     # ORB
-    print("starting ORB")
+    # print("starting ORB")
     descriptors, trainlabels = genFeatures(dataset, labels, "ORB")
     kRet = genKMeans(descriptors)
     hist = genHistograms(descriptors, kRet, len(trainlabels))
-    hist = [(th / 127) for th in hist]
+    hist = [(th / 255) for th in hist]
     # knnORBModel = classifier.fit(hist, labels)
     classifiers.append(classifier.fit(hist, labels))
 
@@ -156,7 +147,7 @@ def trainClassifier(dataset, labels):
     descriptors, trainlabels = genFeatures(dataset, labels, "SIFT")
     kRet = genKMeans(descriptors)
     hist = genHistograms(descriptors, kRet, len(trainlabels))
-    hist = [(th / 127) for th in hist]
+    hist = [(th / 255) for th in hist]
     # dtSIFTModel = classifier.fit(hist, labels)
     classifiers.append(classifier.fit(hist, labels))
 
@@ -164,7 +155,7 @@ def trainClassifier(dataset, labels):
     descriptors, trainlabels = genFeatures(dataset, labels, "ORB")
     kRet = genKMeans(descriptors)
     hist = genHistograms(descriptors, kRet, len(trainlabels))
-    hist = [(th / 127) for th in hist]
+    hist = [(th / 255) for th in hist]
     # dtORBModel = classifier.fit(hist, labels)
     classifiers.append(classifier.fit(hist, labels))
 
@@ -175,7 +166,7 @@ def trainClassifier(dataset, labels):
     descriptors, trainlabels = genFeatures(dataset, labels, "SIFT")
     kRet = genKMeans(descriptors)
     hist = genHistograms(descriptors, kRet, len(trainlabels))
-    hist = [(th / 127) for th in hist]
+    hist = [(th / 255) for th in hist]
     # sgdSIFTModel = classifier.fit(hist, labels)
     classifiers.append(classifier.fit(hist, labels))
 
@@ -183,7 +174,7 @@ def trainClassifier(dataset, labels):
     descriptors, trainlabels = genFeatures(dataset, labels, "ORB")
     kRet = genKMeans(descriptors)
     hist = genHistograms(descriptors, kRet, len(trainlabels))
-    hist = [(th / 127) for th in hist]
+    hist = [(th / 255) for th in hist]
     # sgdORBModel = classifier.fit(hist, labels)
     classifiers.append(classifier.fit(hist, labels))
     return classifiers  # [knnSIFTModel knnORBModel dtSIFTModel dtORBModel sgdSIFTModel sgdORBModel]
@@ -196,7 +187,7 @@ def testClassifier(classifiers, testData, mainLabels):
         descriptors, labels = genFeatures(testData, mainLabels, "SIFT")
         kRet = genKMeans(descriptors)
         hist = genHistograms(descriptors, kRet, len(labels))
-        hist = [th / 127 for th in hist]
+        hist = [th / 150 for th in hist]
         # SIFTresults = classifier.predict(hist)
         results.append(classifier.predict(hist))
 
@@ -204,7 +195,7 @@ def testClassifier(classifiers, testData, mainLabels):
         descriptors, labels = genFeatures(testData, mainLabels, "ORB")
         kRet = genKMeans(descriptors)
         hist = genHistograms(descriptors, kRet, len(labels))
-        hist = [th / 127 for th in hist]
+        hist = [th / 150 for th in hist]
         # ORBresults = classifier.predict(hist)
         results.append(classifier.predict(hist))
     return results  # [knnSIFTResults knnORBResults dtSIFTResults dtORBResults sgdSIFTResults sgdORBResults]
@@ -250,15 +241,44 @@ testDataSet, testlabels, teH, teW = genDataset(TESTPATH)
 testDataSet = resize(testDataSet, teH, teW)
 results = getResults(TRAINPATH, TESTPATH)
 
+print("==============KNN===================")
 print(f"Accuracy score for SIFT: {accuracy_score(testlabels, results[0])}")
 cm = confusion_matrix(testlabels, results[0])
 probabilities = bayesianProbability(cm)
-print(f"Probability of SIFTKNN TURTLE: {probabilities[0]:.2f}")
-print(f"Probability of SIFTKNN PENGUIN: {probabilities[1]:.2f}")
+print(f"Probability of SIFT TURTLE: {probabilities[0]:.2f}")
+print(f"Probability of SIFT PENGUIN: {probabilities[1]:.2f}")
 
 
-print(f"Accuracy score for SIFT: {accuracy_score(testlabels, results[1])}")
+print(f"Accuracy score for ORB: {accuracy_score(testlabels, results[1])}")
 cm = confusion_matrix(testlabels, results[1])
 probabilities = bayesianProbability(cm)
-print(f"Probability of orbKNN TURTLE: {probabilities[0]:.2f}")
-print(f"Probability of orbKNN PENGUIN: {probabilities[1]:.2f}")
+print(f"Probability of orb TURTLE: {probabilities[0]:.2f}")
+print(f"Probability of orb PENGUIN: {probabilities[1]:.2f}")
+
+print("==============DT===================")
+print(f"Accuracy score for SIFT: {accuracy_score(testlabels, results[2])}")
+cm = confusion_matrix(testlabels, results[2])
+probabilities = bayesianProbability(cm)
+print(f"Probability of SIFT TURTLE: {probabilities[0]:.2f}")
+print(f"Probability of SIFT PENGUIN: {probabilities[1]:.2f}")
+
+
+print(f"Accuracy score for ORB: {accuracy_score(testlabels, results[3])}")
+cm = confusion_matrix(testlabels, results[3])
+probabilities = bayesianProbability(cm)
+print(f"Probability of orb TURTLE: {probabilities[0]:.2f}")
+print(f"Probability of orb PENGUIN: {probabilities[1]:.2f}")
+
+print("==============SGD===================")
+print(f"Accuracy score for SIFT: {accuracy_score(testlabels, results[4])}")
+cm = confusion_matrix(testlabels, results[4])
+probabilities = bayesianProbability(cm)
+print(f"Probability of SIFT TURTLE: {probabilities[0]:.2f}")
+print(f"Probability of SIFT PENGUIN: {probabilities[1]:.2f}")
+
+
+print(f"Accuracy score for ORB: {accuracy_score(testlabels, results[5])}")
+cm = confusion_matrix(testlabels, results[5])
+probabilities = bayesianProbability(cm)
+print(f"Probability of orb TURTLE: {probabilities[0]:.2f}")
+print(f"Probability of orb PENGUIN: {probabilities[1]:.2f}")
