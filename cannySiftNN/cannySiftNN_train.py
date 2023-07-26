@@ -7,38 +7,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import json
 import glob
+import os
 
-
-class DenseNet(torch.nn.Module):
-    def __init__(self, inputs, num_hid, outputs):
-        super(DenseNet, self).__init__()
-        self.layer1 = nn.Linear(inputs, num_hid)
-        self.layer1to2 = nn.Linear(inputs, num_hid)
-        self.layer1to3 = nn.Linear(inputs, outputs)
-        self.layer2 = nn.Linear(num_hid, num_hid)
-        self.layer2to3 = nn.Linear(num_hid, outputs)
-        self.layer3 = nn.Linear(num_hid, outputs)
-
-        # first 2 use tan
-        self.tanh = nn.Tanh()
-        # last use sigmoid
-        self.sig = nn.Sigmoid()
-
-    def forward(self, input):
-        output = self.layer1(input)
-        inputTo2 = self.layer1to2(input)
-        inputTo3 = self.layer1to3(input)
-        output = self.tanh(output)
-        self.hid1 = output
-        hid1To3 = self.layer2to3(self.hid1)
-
-        output = self.layer2(output)
-        output = self.tanh(output + inputTo2)
-        self.hid2 = output
-        # output
-        output = self.layer3(output)
-        output = self.sig(output + inputTo3 + hid1To3)
-        return output
+from densenet import DenseNet
 
 
 def train(net, train_loader, optimizer, device, epoch):
@@ -64,6 +35,8 @@ def train(net, train_loader, optimizer, device, epoch):
 
 def extractFeatures(img, detector, computer, debug):
     keypoint = detector.detect(img, None)
+    if isinstance(keypoint, tuple):
+        keypoint = list(keypoint)
     keypoint.sort(key=lambda x: x.response, reverse=True)
     keypoint, descriptor = computer.compute(img, keypoint)
     descriptor = descriptor[:12]
@@ -71,6 +44,7 @@ def extractFeatures(img, detector, computer, debug):
         while len(descriptor) < 12:
             descriptor = np.concatenate((descriptor, [descriptor[0]]), axis=0)
     return keypoint, descriptor
+
 
 
 def setupNN():
@@ -195,10 +169,11 @@ def validateNN():
 
 
 def main(filePath):
+    model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "briefnn.pt")
+    net = torch.load(model_path)
     penguinCertainty = 0.57669
     turtleCertaninty = 0.5646
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    net = torch.load("./cannySiftNN/briefnn.pt")
     img = cv2.imread(filePath)
 
     star = cv2.xfeatures2d.StarDetector_create(responseThreshold=15)
@@ -212,9 +187,12 @@ def main(filePath):
     resultClass = round(net.forward(valid_data).item())
 
     if resultClass == 0:
-        animal = "Penguin"
+        animal = "penguin"
         certainty = penguinCertainty
     else:
-        animal = "Turtle"
+        animal = "turtle"
         certainty = turtleCertaninty
     return animal, certainty
+
+#print(main("../CombinedMethods/valid/valid/image_id_003.jpg"))
+
