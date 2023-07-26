@@ -32,7 +32,8 @@ def train_color_model():
     labels = []
 
     for category in categories:
-        for file in glob.glob(f"color/archive/train/train/{category}_*.jpg"):
+        train_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "archive", "train", "train")
+        for file in glob.glob(os.path.join(train_dir, f"{category}_*.jpg")):
             image = cv2.imread(file)
             histogram = calculate_histogram(image)
             data.append(histogram)
@@ -73,4 +74,4 @@ def predict_image_category(image_path):
     max_proba = probabilities[0][max_proba_index]
     return predicted_label[0], max_proba
 
-# print(predict_image_category("color/archive/valid/valid/image_id_070.jpg"))
+#print(predict_image_category("../CombinedMethods/valid/valid/image_id_003.jpg"))
