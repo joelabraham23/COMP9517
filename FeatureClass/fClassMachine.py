@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import cv2 as cv
 import os
 import time
+import warnings
 
 from skimage import io, util, img_as_ubyte
 from enum import Enum
@@ -18,10 +19,12 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.cluster import KMeans
 from sklearn.utils import shuffle
 
+warnings.filterwarnings("ignore")
+
 TRAINPATH = "FeatureClass/TurtleVPenguins/archive/train/train/"
 TESTPATH = "FeatureClass/TurtleVPenguins/archive/valid/valid/"
 
-CLUSTERS = 1100
+CLUSTERS = 561
 
 
 class Animal(Enum):
@@ -85,10 +88,10 @@ def genFeatures(dataset, labels, fExtractor):
     i = 0
     for image in dataset:
         if fExtractor == "SIFT":
-            ext = cv.SIFT_create(300)
+            ext = cv.SIFT_create(300)  # this was 300 before
             # print("starting SIFT")
         elif fExtractor == "ORB":
-            ext = cv.ORB_create(300)
+            ext = cv.ORB_create(300)  # thie was
             # print("starting OB")
 
         kp = ext.detect(image, None)
@@ -103,8 +106,8 @@ def genFeatures(dataset, labels, fExtractor):
         # plot(image, image, kp)
 
         i += 1
-        if len(desc) < 125:
-            while len(desc) < 125:
+        if len(desc) < CLUSTERS:
+            while len(desc) < CLUSTERS:
                 desc = np.concatenate((desc, np.expand_dims(desc[0], axis=0)), axis=0)
         descriptors.append(desc)
     return np.vstack(descriptors), labels
@@ -114,10 +117,10 @@ def genSingleFeatures(image, label, fExtractor):
     descriptors = []
 
     if fExtractor == "SIFT":
-        ext = cv.SIFT_create()
+        ext = cv.SIFT_create(300)
         # print("starting SIFT")
     elif fExtractor == "ORB":
-        ext = cv.ORB_create()
+        ext = cv.ORB_create(300)
         # print("starting OB")
 
     kp = ext.detect(image, None)
@@ -125,8 +128,8 @@ def genSingleFeatures(image, label, fExtractor):
     # kpList.sort(key=lambda x: x.response, reverse=True)
     kp, desc = ext.compute(image, tuple(kpList))
     # plot(image, image, kp)
-    if len(desc) < 125:
-        while len(desc) < 125:
+    if len(desc) < CLUSTERS:
+        while len(desc) < CLUSTERS:
             desc = np.concatenate((desc, np.expand_dims(desc[0], axis=0)), axis=0)
     descriptors.append(desc)
     return np.vstack(descriptors), label
@@ -140,7 +143,7 @@ def genKMeans(descriptors):
 
 
 def genSingleKMeans(descriptors):
-    kmeans = KMeans(n_clusters=1100, random_state=42)
+    kmeans = KMeans(n_clusters=CLUSTERS, random_state=42)
     retval = kmeans.fit_predict(descriptors)
     # kmeans.fit(np.array([image.desc.reshape(-1) for image in dataset]))
     return retval
@@ -162,7 +165,7 @@ def genHistograms(descriptors, kRetval, size):
 
 
 def genSingleHistograms(descriptors, kRetval, size):
-    histograms = np.zeros((size, 1100), dtype=int)
+    histograms = np.zeros((size, CLUSTERS), dtype=int)
     idx = 0
     for i in range(size):
         descListSize = len(descriptors[i])
