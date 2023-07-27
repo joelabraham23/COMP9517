@@ -110,8 +110,36 @@ def genFeatures(dataset, labels, fExtractor):
     return np.vstack(descriptors), labels
 
 
+def genSingleFeatures(image, label, fExtractor):
+    descriptors = []
+
+    if fExtractor == "SIFT":
+        ext = cv.SIFT_create(300)
+        # print("starting SIFT")
+    elif fExtractor == "ORB":
+        ext = cv.ORB_create(300)
+        # print("starting OB")
+
+    kp = ext.detect(image, None)
+    kpList = list(kp)
+    # kpList.sort(key=lambda x: x.response, reverse=True)
+    kp, desc = ext.compute(image, tuple(kpList))
+    plot(image, image, kp)
+    if len(desc) < 125:
+        while len(desc) < 125:
+            desc = np.concatenate((desc, np.expand_dims(desc[0], axis=0)), axis=0)
+    descriptors.append(desc)
+    return np.vstack(descriptors), label
+
+
 def genKMeans(descriptors):
     kmeans = KMeans(n_clusters=CLUSTERS, random_state=42)
+    retval = kmeans.fit_predict(descriptors)
+    # kmeans.fit(np.array([image.desc.reshape(-1) for image in dataset]))
+    return retval
+
+def genSingleKMeans(descriptors):
+    kmeans = KMeans(n_clusters=300, random_state=42)
     retval = kmeans.fit_predict(descriptors)
     # kmeans.fit(np.array([image.desc.reshape(-1) for image in dataset]))
     return retval
@@ -131,6 +159,19 @@ def genHistograms(descriptors, kRetval, size):
                 break
     return histograms
 
+def genSingleHistograms(descriptors, kRetval, size):
+    histograms = np.zeros((size, 300), dtype=int)
+    idx = 0
+    for i in range(size):
+        descListSize = len(descriptors[i])
+        for j in range(descListSize):
+            if idx < len(kRetval):
+                index = kRetval[idx]
+                histograms[i][index] += 1
+                idx += 1
+            else:
+                break
+    return histograms
 
 def trainClassifier(dataset, labels):
     classifiers = []
@@ -198,15 +239,15 @@ def testClassifier(classifiers, testData, mainLabels):
     results = []
     for i in range(0, len(classifiers), 2):
         classifier = classifiers[i]
-        descriptors, labels = genFeatures(testData, mainLabels, "SIFT")
-        kRet = genKMeans(descriptors)
-        hist = genHistograms(descriptors, kRet, len(labels))
+        descriptors, labels = genSingleFeatures(testData, mainLabels, "SIFT")
+        kRet = genSingleKMeans(descriptors)
+        hist = genSingleHistograms(descriptors, kRet, len(labels))
         hist = [th / 150 for th in hist]
         # SIFTresults = classifier.predict(hist)
         results.append(classifier.predict(hist))
 
         classifier = classifiers[i + 1]
-        descriptors, labels = genFeatures(testData, mainLabels, "ORB")
+        descriptors, labels = genSingleFeatures(testData, mainLabels, "ORB")
         kRet = genKMeans(descriptors)
         hist = genHistograms(descriptors, kRet, len(labels))
         hist = [th / 150 for th in hist]
@@ -248,6 +289,11 @@ def getResults(TrainPath, TestPath):
 
 
 def convertResults(results):
+    # cm = confusion_matrix(testlabels, results[0])
+    # probabilities = bayesianProbability(cm)
+    # print(f"Probability of SIFT TURTLE: {probabilities[0]:.2f}")
+    # print(f"Probability of SIFT PENGUIN: {probabilities[1]:.2f}")
+    #gained from testing
     # KNN
     probSiftKnnP = 0.5695
     probSiftKnnT = 0.42
@@ -300,16 +346,18 @@ def convertResults(results):
 def main(testFilePath):
     #################################################
     # generate datset and resize
-    trainDataSet, trainlabels, trH, trW = genDataset(TRAINPATH)
-    trainDataSet = resize(trainDataSet, trH, trW)
+    # trainDataSet, trainlabels, trH, trW = genDataset(TRAINPATH)
+    # trainDataSet = resize(trainDataSet, trH, trW)
 
-    # testDataSet, testlabels, teH, teW = genDataset(TESTPATH)
-    # testDataSet = resize(testDataSet, teH, teW)
-    testDataSet, testlabels = testSingleImage(testFilePath)
+    # # testDataSet, testlabels, teH, teW = genDataset(TESTPATH)
+    # # testDataSet = resize(testDataSet, teH, teW)
+    # testDataSet, testlabels = testSingleImage(testFilePath)
     results = getResults(TRAINPATH, testFilePath)
+    print(convertResults(results))
     return convertResults(results)
 
 
+main("FeatureClass/TurtleVPenguins/archive/valid/valid/P1.jpg")
 # print("==============KNN===================")
 # print(f"Accuracy score for SIFT: {accuracy_score(testlabels, results[0])}")
 # cm = confusion_matrix(testlabels, results[0])
