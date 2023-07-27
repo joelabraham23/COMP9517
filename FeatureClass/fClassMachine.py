@@ -133,13 +133,14 @@ def genSingleFeatures(image, label, fExtractor):
 
 
 def genKMeans(descriptors):
-    kmeans = KMeans(n_clusters=CLUSTERS, random_state=42)
+    kmeans = KMeans(n_clusters=CLUSTERS, n_init=10, random_state=42)
     retval = kmeans.fit_predict(descriptors)
     # kmeans.fit(np.array([image.desc.reshape(-1) for image in dataset]))
     return retval
 
+
 def genSingleKMeans(descriptors):
-    kmeans = KMeans(n_clusters=300, random_state=42)
+    kmeans = KMeans(n_clusters=300, n_init=10, random_state=42)
     retval = kmeans.fit_predict(descriptors)
     # kmeans.fit(np.array([image.desc.reshape(-1) for image in dataset]))
     return retval
@@ -159,6 +160,7 @@ def genHistograms(descriptors, kRetval, size):
                 break
     return histograms
 
+
 def genSingleHistograms(descriptors, kRetval, size):
     histograms = np.zeros((size, 300), dtype=int)
     idx = 0
@@ -172,6 +174,7 @@ def genSingleHistograms(descriptors, kRetval, size):
             else:
                 break
     return histograms
+
 
 def trainClassifier(dataset, labels):
     classifiers = []
@@ -293,7 +296,7 @@ def convertResults(results):
     # probabilities = bayesianProbability(cm)
     # print(f"Probability of SIFT TURTLE: {probabilities[0]:.2f}")
     # print(f"Probability of SIFT PENGUIN: {probabilities[1]:.2f}")
-    #gained from testing
+    # gained from testing
     # KNN
     probSiftKnnP = 0.5695
     probSiftKnnT = 0.42
