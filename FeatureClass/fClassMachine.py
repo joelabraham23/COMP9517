@@ -24,7 +24,7 @@ warnings.filterwarnings("ignore")
 TRAINPATH = "FeatureClass/TurtleVPenguins/archive/train/train/"
 TESTPATH = "FeatureClass/TurtleVPenguins/archive/valid/valid/"
 
-CLUSTERS = 561
+CLUSTERS = 1100
 
 
 class Animal(Enum):
@@ -106,8 +106,8 @@ def genFeatures(dataset, labels, fExtractor):
         # plot(image, image, kp)
 
         i += 1
-        if len(desc) < CLUSTERS:
-            while len(desc) < CLUSTERS:
+        if len(desc) < 125:
+            while len(desc) < 125:
                 desc = np.concatenate((desc, np.expand_dims(desc[0], axis=0)), axis=0)
         descriptors.append(desc)
     return np.vstack(descriptors), labels
