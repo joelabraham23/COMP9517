@@ -4,13 +4,13 @@ import matplotlib.pyplot as plt
 from ultralytics import YOLO
 import numpy as np
 
-model = YOLO("G:/Uni/Year4/Comp9517/Ass2/train_100_epochs_90DegreeAugSet_label_set/weights/best.pt")
+model = YOLO("Yolov8/train_100_epochs_90DegreeAugSet_label_set/weights/best.pt")
 
 model_name = "augmented90degree100Epoch"  # Name of your model
 output_dir = os.path.join(os.getcwd(), f'{model_name}_results')
 os.makedirs(output_dir, exist_ok=True)  # This will create the directory if it does not exist
 
-dir_path = "G:/Uni/Year4/Comp9517/Ass2/Penguins vs Turtles/archive/valid/valid"
+dir_path = "Yolov8/PenguinsVTurtles/archive/valid/valid"
 
 for filename in os.listdir(dir_path):
     if filename.endswith(".jpg") or filename.endswith(".png"):
