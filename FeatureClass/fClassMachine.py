@@ -21,8 +21,8 @@ from sklearn.utils import shuffle
 
 warnings.filterwarnings("ignore")
 
-TRAINPATH = "FeatureClass/TurtleVPenguins/archive/train/train/"
-TESTPATH = "FeatureClass/TurtleVPenguins/archive/valid/valid/"
+TRAINPATH = "../FeatureClass/TurtleVPenguins/archive/train/train/"
+TESTPATH = "../FeatureClass/TurtleVPenguins/archive/valid/valid/"
 
 CLUSTERS = 1100
 
@@ -47,13 +47,13 @@ def resize(imgs, h, w):
 
 def testSingleImage(path):
     label = -1
-    if "P" in path.split("/")[5].split(".")[0]:
-        image = cv.imread(path, cv.COLOR_BGR2GRAY)
-        label = Animal.PENGUIN.value
-    else:
-        # image = Image(cv.imread(path + file), Animal.TURTLE.value, -1, -1)
-        image = cv.imread(path, cv.COLOR_BGR2GRAY)
-        label = Animal.TURTLE.value
+    # if "P" in path.split("/")[5].split(".")[0]:
+    image = cv.imread(path, cv.COLOR_BGR2GRAY)
+    #     label = Animal.PENGUIN.value
+    # else:
+    #     # image = Image(cv.imread(path + file), Animal.TURTLE.value, -1, -1)
+    #     image = cv.imread(path, cv.COLOR_BGR2GRAY)
+    #     label = Animal.TURTLE.value
 
     return image, label
 
@@ -361,11 +361,11 @@ def main(testFilePath):
     # # testDataSet = resize(testDataSet, teH, teW)
     # testDataSet, testlabels = testSingleImage(testFilePath)
     results = getResults(TRAINPATH, testFilePath)
-    print(convertResults(results))
+    # print(convertResults(results))
     return convertResults(results)
 
 
-main("FeatureClass/TurtleVPenguins/archive/valid/valid/P1.jpg")
+# main("FeatureClass/TurtleVPenguins/archive/valid/valid/P1.jpg")
 # print("==============KNN===================")
 # print(f"Accuracy score for SIFT: {accuracy_score(testlabels, results[0])}")
 # cm = confusion_matrix(testlabels, results[0])

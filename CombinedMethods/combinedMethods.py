@@ -7,6 +7,7 @@ import os
 sys.path.insert(0, "../Yolov8")
 sys.path.insert(1, "../cannySiftNN")
 sys.path.insert(2, "../color")
+sys.path.insert(3, "../FeatureClass")
 
 from YoloClassify import main as yolo_main
 from cannySiftNN_train import main as canny_sift_main
@@ -43,7 +44,7 @@ def process_image(image_path):
 
 
 def weighted_result(result_json):
-    weights = {"yolo": 0.50, "cannySiftNN": 0.20, "color": 0.10, "fClass": 0.20}
+    weights = {"yolo": 0.50, "cannySiftNN": 0.20, "color": 0.10, "Feature Classifier": 0.20}
     scores = {"penguin": 0.0, "turtle": 0.0}
     for method in result_json.keys():
         scores[result_json[method]["label"]] += (
