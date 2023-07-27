@@ -20,6 +20,7 @@ from sklearn.utils import shuffle
 
 TRAINPATH = "FeatureClass/TurtleVPenguins/archive/train/train/"
 TESTPATH = "FeatureClass/TurtleVPenguins/archive/valid/valid/"
+
 CLUSTERS = 1100
 
 
@@ -39,6 +40,19 @@ def resize(imgs, h, w):
     for image in imgs:
         newimgs.append(cv.resize(image, (int(h * 0.5), int(w * 0.5))))
     return newimgs
+
+
+def testSingleImage(path):
+    label = -1
+    if "P" in path.split("/")[5].split(".")[0]:
+        image = cv.imread(path, cv.COLOR_BGR2GRAY)
+        label = Animal.PENGUIN.value
+    else:
+        # image = Image(cv.imread(path + file), Animal.TURTLE.value, -1, -1)
+        image = cv.imread(path, cv.COLOR_BGR2GRAY)
+        label = Animal.TURTLE.value
+
+    return image, label
 
 
 def genDataset(path):
@@ -160,24 +174,24 @@ def trainClassifier(dataset, labels):
     classifiers.append(classifier.fit(hist, labels))
 
     # ============================ SGD
-    classifier = SGDClassifier()
-    print("starting SGD")
-    ## SIFT
-    descriptors, trainlabels = genFeatures(dataset, labels, "SIFT")
-    kRet = genKMeans(descriptors)
-    hist = genHistograms(descriptors, kRet, len(trainlabels))
-    hist = [(th / 255) for th in hist]
-    # sgdSIFTModel = classifier.fit(hist, labels)
-    classifiers.append(classifier.fit(hist, labels))
+    # classifier = SGDClassifier()
+    # print("starting SGD")
+    # ## SIFT
+    # descriptors, trainlabels = genFeatures(dataset, labels, "SIFT")
+    # kRet = genKMeans(descriptors)
+    # hist = genHistograms(descriptors, kRet, len(trainlabels))
+    # hist = [(th / 255) for th in hist]
+    # # sgdSIFTModel = classifier.fit(hist, labels)
+    # classifiers.append(classifier.fit(hist, labels))
 
-    # ORB
-    descriptors, trainlabels = genFeatures(dataset, labels, "ORB")
-    kRet = genKMeans(descriptors)
-    hist = genHistograms(descriptors, kRet, len(trainlabels))
-    hist = [(th / 255) for th in hist]
-    # sgdORBModel = classifier.fit(hist, labels)
-    classifiers.append(classifier.fit(hist, labels))
-    return classifiers  # [knnSIFTModel knnORBModel dtSIFTModel dtORBModel sgdSIFTModel sgdORBModel]
+    # # ORB
+    # descriptors, trainlabels = genFeatures(dataset, labels, "ORB")
+    # kRet = genKMeans(descriptors)
+    # hist = genHistograms(descriptors, kRet, len(trainlabels))
+    # hist = [(th / 255) for th in hist]
+    # # sgdORBModel = classifier.fit(hist, labels)
+    # classifiers.append(classifier.fit(hist, labels))
+    return classifiers  # [knnSIFTModel knnORBModel dtSIFTModel dtORBModel ]
 
 
 def testClassifier(classifiers, testData, mainLabels):
@@ -198,7 +212,7 @@ def testClassifier(classifiers, testData, mainLabels):
         hist = [th / 150 for th in hist]
         # ORBresults = classifier.predict(hist)
         results.append(classifier.predict(hist))
-    return results  # [knnSIFTResults knnORBResults dtSIFTResults dtORBResults sgdSIFTResults sgdORBResults]
+    return results  # [knnSIFTResults knnORBResults dtSIFTResults dtORBResults]
 
 
 def bayesianProbability(confusionMatrix):
@@ -221,64 +235,119 @@ def getResults(TrainPath, TestPath):
     trainDataSet, trainlabels, trH, trW = genDataset(TrainPath)
     trainDataSet = resize(trainDataSet, trH, trW)
 
-    testDataSet, testlabels, teH, teW = genDataset(TestPath)
-    testDataSet = resize(testDataSet, teH, teW)
+    # testDataSet, testlabels, teH, teW = genDataset(TestPath)
+    # testDataSet = resize(testDataSet, teH, teW)
+    testDataSet, testlabels = testSingleImage(TestPath)
 
     ################################### training
     classifiers = trainClassifier(trainDataSet, trainlabels)
     ################################### testing
     results = testClassifier(classifiers, testDataSet, testlabels)
 
-    return results  # [knnSIFTResults knnORBResults dtSIFTResults dtORBResults sgdSIFTResults sgdORBResults]
+    return results  # [knnSIFTResults knnORBResults dtSIFTResults dtORBResults]
 
 
-#################################################
-# generate datset and resize
-trainDataSet, trainlabels, trH, trW = genDataset(TRAINPATH)
-trainDataSet = resize(trainDataSet, trH, trW)
+def convertResults(results):
+    # KNN
+    probSiftKnnP = 0.5695
+    probSiftKnnT = 0.42
+    probOrbKnnP = 0.75
+    probOrbKnnT = 0.50
 
-testDataSet, testlabels, teH, teW = genDataset(TESTPATH)
-testDataSet = resize(testDataSet, teH, teW)
-results = getResults(TRAINPATH, TESTPATH)
+    # DT
+    probSiftDtP = 0.75
+    probSiftDtT = 0.33
+    probOrbDtP = 0.72
+    probOrbDtT = 0.42
 
-print("==============KNN===================")
-print(f"Accuracy score for SIFT: {accuracy_score(testlabels, results[0])}")
-cm = confusion_matrix(testlabels, results[0])
-probabilities = bayesianProbability(cm)
-print(f"Probability of SIFT TURTLE: {probabilities[0]:.2f}")
-print(f"Probability of SIFT PENGUIN: {probabilities[1]:.2f}")
+    penguinScore = 1.0
+    turtleScore = 1.0
+    if results[0][0] == 0:
+        # TURTLE
+        turtleScore = turtleScore * probSiftKnnT
+    else:
+        # PENGUIN
+        penguinScore = penguinScore * probSiftKnnP
+
+    if results[1][0] == 0:
+        # TURTLE
+        turtleScore = turtleScore * probOrbKnnT
+    else:
+        # PENGUIN
+        penguinScore = penguinScore * probOrbKnnP
+
+    if results[2][0] == 0:
+        # TURTLE
+        turtleScore = turtleScore * probSiftDtT
+    else:
+        # PENGUIN
+        penguinScore = penguinScore * probSiftDtP
+
+    if results[3][0] == 0:
+        # TURTLE
+        turtleScore = turtleScore * probOrbDtT
+    else:
+        # PENGUIN
+        penguinScore = penguinScore * probOrbDtP
+
+    if penguinScore > turtleScore:
+        return "penguin", penguinScore
+    else:
+        return "turtle", turtleScore
+    # result = [knnSIFTResults knnORBResults dtSIFTResults dtORBResults]
 
 
-print(f"Accuracy score for ORB: {accuracy_score(testlabels, results[1])}")
-cm = confusion_matrix(testlabels, results[1])
-probabilities = bayesianProbability(cm)
-print(f"Probability of orb TURTLE: {probabilities[0]:.2f}")
-print(f"Probability of orb PENGUIN: {probabilities[1]:.2f}")
+def main(testFilePath):
+    #################################################
+    # generate datset and resize
+    trainDataSet, trainlabels, trH, trW = genDataset(TRAINPATH)
+    trainDataSet = resize(trainDataSet, trH, trW)
 
-print("==============DT===================")
-print(f"Accuracy score for SIFT: {accuracy_score(testlabels, results[2])}")
-cm = confusion_matrix(testlabels, results[2])
-probabilities = bayesianProbability(cm)
-print(f"Probability of SIFT TURTLE: {probabilities[0]:.2f}")
-print(f"Probability of SIFT PENGUIN: {probabilities[1]:.2f}")
-
-
-print(f"Accuracy score for ORB: {accuracy_score(testlabels, results[3])}")
-cm = confusion_matrix(testlabels, results[3])
-probabilities = bayesianProbability(cm)
-print(f"Probability of orb TURTLE: {probabilities[0]:.2f}")
-print(f"Probability of orb PENGUIN: {probabilities[1]:.2f}")
-
-print("==============SGD===================")
-print(f"Accuracy score for SIFT: {accuracy_score(testlabels, results[4])}")
-cm = confusion_matrix(testlabels, results[4])
-probabilities = bayesianProbability(cm)
-print(f"Probability of SIFT TURTLE: {probabilities[0]:.2f}")
-print(f"Probability of SIFT PENGUIN: {probabilities[1]:.2f}")
+    # testDataSet, testlabels, teH, teW = genDataset(TESTPATH)
+    # testDataSet = resize(testDataSet, teH, teW)
+    testDataSet, testlabels = testSingleImage(testFilePath)
+    results = getResults(TRAINPATH, testFilePath)
+    return convertResults(results)
 
 
-print(f"Accuracy score for ORB: {accuracy_score(testlabels, results[5])}")
-cm = confusion_matrix(testlabels, results[5])
-probabilities = bayesianProbability(cm)
-print(f"Probability of orb TURTLE: {probabilities[0]:.2f}")
-print(f"Probability of orb PENGUIN: {probabilities[1]:.2f}")
+# print("==============KNN===================")
+# print(f"Accuracy score for SIFT: {accuracy_score(testlabels, results[0])}")
+# cm = confusion_matrix(testlabels, results[0])
+# probabilities = bayesianProbability(cm)
+# print(f"Probability of SIFT TURTLE: {probabilities[0]:.2f}")
+# print(f"Probability of SIFT PENGUIN: {probabilities[1]:.2f}")
+
+
+# print(f"Accuracy score for ORB: {accuracy_score(testlabels, results[1])}")
+# cm = confusion_matrix(testlabels, results[1])
+# probabilities = bayesianProbability(cm)
+# print(f"Probability of orb TURTLE: {probabilities[0]:.2f}")
+# print(f"Probability of orb PENGUIN: {probabilities[1]:.2f}")
+
+# print("==============DT===================")
+# print(f"Accuracy score for SIFT: {accuracy_score(testlabels, results[2])}")
+# cm = confusion_matrix(testlabels, results[2])
+# probabilities = bayesianProbability(cm)
+# print(f"Probability of SIFT TURTLE: {probabilities[0]:.2f}")
+# print(f"Probability of SIFT PENGUIN: {probabilities[1]:.2f}")
+
+
+# print(f"Accuracy score for ORB: {accuracy_score(testlabels, results[3])}")
+# cm = confusion_matrix(testlabels, results[3])
+# probabilities = bayesianProbability(cm)
+# print(f"Probability of orb TURTLE: {probabilities[0]:.2f}")
+# print(f"Probability of orb PENGUIN: {probabilities[1]:.2f}")
+
+# print("==============SGD===================")
+# print(f"Accuracy score for SIFT: {accuracy_score(testlabels, results[4])}")
+# cm = confusion_matrix(testlabels, results[4])
+# probabilities = bayesianProbability(cm)
+# print(f"Probability of SIFT TURTLE: {probabilities[0]:.2f}")
+# print(f"Probability of SIFT PENGUIN: {probabilities[1]:.2f}")
+
+
+# print(f"Accuracy score for ORB: {accuracy_score(testlabels, results[5])}")
+# cm = confusion_matrix(testlabels, results[5])
+# probabilities = bayesianProbability(cm)
+# print(f"Probability of orb TURTLE: {probabilities[0]:.2f}")
+# print(f"Probability of orb PENGUIN: {probabilities[1]:.2f}")
