@@ -114,17 +114,17 @@ def genSingleFeatures(image, label, fExtractor):
     descriptors = []
 
     if fExtractor == "SIFT":
-        ext = cv.SIFT_create(300)
+        ext = cv.SIFT_create()
         # print("starting SIFT")
     elif fExtractor == "ORB":
-        ext = cv.ORB_create(300)
+        ext = cv.ORB_create()
         # print("starting OB")
 
     kp = ext.detect(image, None)
     kpList = list(kp)
     # kpList.sort(key=lambda x: x.response, reverse=True)
     kp, desc = ext.compute(image, tuple(kpList))
-    plot(image, image, kp)
+    # plot(image, image, kp)
     if len(desc) < 125:
         while len(desc) < 125:
             desc = np.concatenate((desc, np.expand_dims(desc[0], axis=0)), axis=0)
@@ -138,8 +138,9 @@ def genKMeans(descriptors):
     # kmeans.fit(np.array([image.desc.reshape(-1) for image in dataset]))
     return retval
 
+
 def genSingleKMeans(descriptors):
-    kmeans = KMeans(n_clusters=300, random_state=42)
+    kmeans = KMeans(n_clusters=1100, random_state=42)
     retval = kmeans.fit_predict(descriptors)
     # kmeans.fit(np.array([image.desc.reshape(-1) for image in dataset]))
     return retval
@@ -159,8 +160,9 @@ def genHistograms(descriptors, kRetval, size):
                 break
     return histograms
 
+
 def genSingleHistograms(descriptors, kRetval, size):
-    histograms = np.zeros((size, 300), dtype=int)
+    histograms = np.zeros((size, 1100), dtype=int)
     idx = 0
     for i in range(size):
         descListSize = len(descriptors[i])
@@ -172,6 +174,7 @@ def genSingleHistograms(descriptors, kRetval, size):
             else:
                 break
     return histograms
+
 
 def trainClassifier(dataset, labels):
     classifiers = []
@@ -236,12 +239,13 @@ def trainClassifier(dataset, labels):
 
 
 def testClassifier(classifiers, testData, mainLabels):
+    print("start testing")
     results = []
     for i in range(0, len(classifiers), 2):
         classifier = classifiers[i]
         descriptors, labels = genSingleFeatures(testData, mainLabels, "SIFT")
         kRet = genSingleKMeans(descriptors)
-        hist = genSingleHistograms(descriptors, kRet, len(labels))
+        hist = genSingleHistograms(descriptors, kRet, 1)
         hist = [th / 150 for th in hist]
         # SIFTresults = classifier.predict(hist)
         results.append(classifier.predict(hist))
@@ -249,7 +253,7 @@ def testClassifier(classifiers, testData, mainLabels):
         classifier = classifiers[i + 1]
         descriptors, labels = genSingleFeatures(testData, mainLabels, "ORB")
         kRet = genKMeans(descriptors)
-        hist = genHistograms(descriptors, kRet, len(labels))
+        hist = genHistograms(descriptors, kRet, 1)
         hist = [th / 150 for th in hist]
         # ORBresults = classifier.predict(hist)
         results.append(classifier.predict(hist))
@@ -282,6 +286,7 @@ def getResults(TrainPath, TestPath):
 
     ################################### training
     classifiers = trainClassifier(trainDataSet, trainlabels)
+    print(classifiers)
     ################################### testing
     results = testClassifier(classifiers, testDataSet, testlabels)
 
@@ -293,7 +298,7 @@ def convertResults(results):
     # probabilities = bayesianProbability(cm)
     # print(f"Probability of SIFT TURTLE: {probabilities[0]:.2f}")
     # print(f"Probability of SIFT PENGUIN: {probabilities[1]:.2f}")
-    #gained from testing
+    # gained from testing
     # KNN
     probSiftKnnP = 0.5695
     probSiftKnnT = 0.42
