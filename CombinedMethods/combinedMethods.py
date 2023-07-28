@@ -8,19 +8,21 @@ sys.path.insert(0, "../Yolov8")
 sys.path.insert(1, "../cannySiftNN")
 sys.path.insert(2, "../color")
 sys.path.insert(3, "../FeatureClass")
+sys.path.insert(4, "../haarCascade")
 
 from YoloClassify import main as yolo_main
 from cannySiftNN_train import main as canny_sift_main
 from densenet import DenseNet
 from color_model import predict_image_category
 from fClassMachine import main as fClassMain
-
+from main import haarCascade as haar_main
 
 def process_image(image_path):
     yolo_label, yolo_score, yolo_box = yolo_main(image_path)
     canny_sift_label, canny_sift_score = canny_sift_main(image_path)
     color_label, color_proba = predict_image_category(image_path)
     fClass_label, fClass_proba = fClassMain(image_path)
+    haar_label, harr_proba = haar_main(image_path)
 
     return {
         "yolo": {
@@ -40,16 +42,15 @@ def process_image(image_path):
             "label": fClass_label,
             "score": fClass_proba,
         },
+        "Haars Cascade": {
+            "label": haar_label,
+            "score": harr_proba,
+        },
     }
 
 
 def weighted_result(result_json):
-    weights = {
-        "yolo": 0.50,
-        "cannySiftNN": 0.20,
-        "color": 0.10,
-        "Feature Classifier": 0.20,
-    }
+    weights = {"yolo": 0.50, "cannySiftNN": 0.15, "color": 0.10, "Feature Classifier": 0.15, "Haars Cascade":0.10}
     scores = {"penguin": 0.0, "turtle": 0.0}
     for method in result_json.keys():
         scores[result_json[method]["label"]] += (
