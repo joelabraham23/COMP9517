@@ -1,9 +1,14 @@
 import cv2
+import os
 
 def haarCascade(file):
 
-    cascade_penguin = cv2.CascadeClassifier('cascade/cascadePenguin.xml')
-    cascade_turtle = cv2.CascadeClassifier('cascade/cascadeTurtle.xml')
+    dir_path = os.path.dirname(os.path.abspath(__file__))
+    cascade_penguin_path = os.path.join(dir_path, 'cascade', 'cascadePenguin.xml')
+    cascade_turtle_path = os.path.join(dir_path, 'cascade', 'cascadeTurtle.xml')
+
+    cascade_penguin = cv2.CascadeClassifier(cascade_penguin_path)
+    cascade_turtle = cv2.CascadeClassifier(cascade_turtle_path)
 
     img = cv2.imread(file)
 
