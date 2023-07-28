@@ -8,6 +8,7 @@ import cv2 as cv
 import os
 import time
 import warnings
+import pickle
 
 from skimage import io, util, img_as_ubyte
 from enum import Enum
@@ -242,7 +243,7 @@ def trainClassifier(dataset, labels):
 
 
 def testClassifier(classifiers, testData, mainLabels):
-    print("start testing")
+    start = time.time()
     results = []
     for i in range(0, len(classifiers), 2):
         classifier = classifiers[i]
@@ -260,6 +261,7 @@ def testClassifier(classifiers, testData, mainLabels):
         hist = [th / 150 for th in hist]
         # ORBresults = classifier.predict(hist)
         results.append(classifier.predict(hist))
+        print(f"finish testing in {time.time() - start} seconds")
     return results  # [knnSIFTResults knnORBResults dtSIFTResults dtORBResults]
 
 
@@ -288,8 +290,16 @@ def getResults(TrainPath, TestPath):
     testDataSet, testlabels = testSingleImage(TestPath)
 
     ################################### training
-    classifiers = trainClassifier(trainDataSet, trainlabels)
-    print(classifiers)
+    classifiers = []
+    if os.path.exists("../FeatureClass/classifiers.pkl"):
+        with open(
+            "../FeatureClass/classifiers.pkl", "rb"
+        ) as file:  # Open in binary mode
+            classifiers = pickle.load(file)  # Load from the file
+    else:
+        classifiers = trainClassifier(trainDataSet, trainlabels)
+        with open("../FeatureClass/classifiers.pkl", "wb") as file:
+            pickle.dump(classifiers, file)
     ################################### testing
     results = testClassifier(classifiers, testDataSet, testlabels)
 
