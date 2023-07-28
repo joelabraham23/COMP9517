@@ -44,7 +44,12 @@ def process_image(image_path):
 
 
 def weighted_result(result_json):
-    weights = {"yolo": 0.50, "cannySiftNN": 0.20, "color": 0.10, "Feature Classifier": 0.20}
+    weights = {
+        "yolo": 0.50,
+        "cannySiftNN": 0.20,
+        "color": 0.10,
+        "Feature Classifier": 0.20,
+    }
     scores = {"penguin": 0.0, "turtle": 0.0}
     for method in result_json.keys():
         scores[result_json[method]["label"]] += (
@@ -79,4 +84,4 @@ def main(image_path):
     return final_result, image
 
 
-main("./valid/image_id_000.jpg")
+main("./valid/image_id_021.jpg")
