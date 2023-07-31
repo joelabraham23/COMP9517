@@ -171,8 +171,8 @@ def validateNN():
 def main(filePath):
     model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "briefnn.pt")
     net = torch.load(model_path)
-    penguinCertainty = 0.57669
-    turtleCertaninty = 0.5646
+    penguinCertainty = 0.692
+    turtleCertaninty = 0.666
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     img = cv2.imread(filePath)
 
