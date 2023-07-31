@@ -1,6 +1,11 @@
 import cv2
 import os
 
+def get_biggest_rectangle(rectangles):
+    if rectangles.size > 0: 
+        return max(rectangles, key=lambda rect: rect[2] * rect[3])
+    return ()
+
 def haarCascade(file):
 
     dir_path = os.path.dirname(os.path.abspath(__file__))
@@ -21,12 +26,14 @@ def haarCascade(file):
     turt = len(turtle_rect)
 
     if peng > turt:
-        return "penguin", peng/(peng + turt)
+        biggest_rect = get_biggest_rectangle(penguin_rect)
+        return "penguin", peng/(peng + turt), biggest_rect
 
     if turt > peng:
-        return "turtle", turt/(peng + turt)
+        biggest_rect = get_biggest_rectangle(turtle_rect)
+        return "turtle", turt/(peng + turt), biggest_rect
 
-    return "penguin", 0
+    return "penguin", 0, ()
 
 def main():
     pass
