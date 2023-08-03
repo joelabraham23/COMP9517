@@ -21,6 +21,7 @@ pip install scikit-image
 pip install ultralytics
 pip install tkinter
 
+We are sorry if we have missed any pip installs, please install the remaining based on the errors.
 
 Steps to run the classification method on ONE IMAGE. The classification will take 1-2 minutes. Please wait :)
 
